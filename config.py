@@ -1,7 +1,7 @@
 # Absolute path of repository
-base_path = "/home/liugangqiang/mam-allen-20241222/mam-allen"
+base_path = "/home/liugangqiang/mam-allen-20250107/mam-allen"
 # Place to store simulations
-data_path = "/home/liugangqiang/mam-allen-20241222/simulations"
+data_path = "/home/liugangqiang/mam-allen-20250107/simulations"
 
 # Template for job scripts
 jobscript_template = '''
