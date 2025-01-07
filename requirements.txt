@@ -1,8 +1,0 @@
-future
-numpy
-matplotlib
-pandas
-scipy
-pytest
-nested_dict
-dicthash
