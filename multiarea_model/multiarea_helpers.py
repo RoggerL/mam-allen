@@ -38,9 +38,13 @@ except ImportError:
     from collections import Iterable
 
 from config import base_path
-from .default_params import complete_area_list, population_list
+from .default_params import complete_area_list, pop_list_norm, pop_list_TH
 from nested_dict import nested_dict
+import pandas as pd
+import matplotlib.pyplot as plt
+from datetime import datetime
 
+population_list = pop_list_norm
 
 def load_degree_data(fn):
     """
@@ -112,7 +116,6 @@ def load_degree_data(fn):
     return (indegrees.to_dict(), indegrees_areas,
             outdegrees.to_dict(), outdegrees_areas)
 
-
 def area_level_dict(dic, num, degree='indegree'):
     """
     Convert a connectivity dictionary from population-specific
@@ -154,7 +157,6 @@ def area_level_dict(dic, num, degree='indegree'):
 
     return area_level_dic.to_dict()
 
-
 def dict_to_matrix(d, area_list, structure):
     """
     Convert a dictionary containing connectivity
@@ -186,7 +188,6 @@ def dict_to_matrix(d, area_list, structure):
             M[i][j] = d[target_area][target_pop]['external']['external']
             i += 1
     return M
-
 
 def matrix_to_dict(m, area_list, structure, external=None):
     """
@@ -259,7 +260,6 @@ def matrix_to_dict(m, area_list, structure, external=None):
 
     return dic.to_dict()
 
-
 def vector_to_dict(v, area_list, structure, external=None):
     """
     Convert a vector containing neuron numbers
@@ -286,7 +286,6 @@ def vector_to_dict(v, area_list, structure, external=None):
 
         dic[area]['total'] = sum(v[vmask])
     return dic.to_dict()
-
 
 def dict_to_vector(d, area_list, structure):
     """
@@ -319,7 +318,6 @@ def dict_to_vector(d, area_list, structure):
                 i += 1
     return V
 
-
 def create_vector_mask(structure, pops=population_list,
                        areas=complete_area_list, complete_area_list=complete_area_list):
     """
@@ -347,7 +345,6 @@ def create_vector_mask(structure, pops=population_list,
         else:
             mask = np.append(mask, np.zeros_like(structure[area], dtype=bool))
     return mask
-
 
 def create_mask(structure, target_pops=population_list,
                 source_pops=population_list,
@@ -589,3 +586,56 @@ def convert_syn_weight(W, area_list, structure, neuron_params):
             J[target_area][target_pop]['external'] = {}
             J[target_area][target_pop]['external']['external'] = W[target_area][target_pop]['external']['external']
     return J
+
+def plt_matrix(matrix,area,path,type="currents",label_max=True,show_file_path=False):
+    '''
+    Visualize matrix through table
+    
+    Parameters
+    ----------
+    matrix:dict
+    Matrix that needs to be visualized
+    area: str
+    Selected area
+    path: str
+    Total path for saving pictures
+    type: str
+    type of matrix, used for path and file name
+    lable_max: bool
+    mark the max and min if it is true
+    show_file_path: bool
+    print whole file path if it is true.
+    '''
+    
+    matrix_df = pd.DataFrame(matrix)
+    matrix_df = matrix_df.round(3)    
+    plt.figure(figsize=(8, 4))
+    plt.axis('off')
+    table = plt.table(cellText=matrix_df.values, colLabels=matrix_df.columns, rowLabels=matrix_df.index, cellLoc='center', loc='center')
+    # Adjust the font size and border of the table
+    table.auto_set_font_size(False)
+    table.set_fontsize(5)  
+    
+    # Find the maximum and minimum values of each column.
+    max_values = matrix_df.max()
+    min_values = matrix_df.min()    
+    
+    for (i, j), cell in table.get_celld().items():
+        cell.set_linewidth(0.5)  # Thinned border
+        # Mark the maximum value in yellow and the minimum value in red.
+        if label_max == True:
+            if i > 0 and j >= 0:  
+                if matrix_df.iloc[i - 1, j] == max_values[j]:
+                    cell.set_facecolor('yellow')  
+            if i > 0 and j >= 0:  
+                if matrix_df.iloc[i - 1, j] == min_values[j]:
+                    cell.set_facecolor('red')  
+
+    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if not os.path.exists(f'{path}/matrix_{type}'):
+        os.makedirs(f'{path}/matrix_{type}')
+    file_path = f'{path}/matrix_{type}/{area}_{current_time}.png'  
+    if show_file_path:
+        print("file_path=",file_path)
+    plt.savefig(file_path, bbox_inches='tight', dpi=300)
+    plt.close()   

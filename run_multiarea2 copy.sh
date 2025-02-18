@@ -50,7 +50,6 @@ monitor() {
     echo "No more Python process found for user $USER. Exiting."
 }
 
-
 #防止重复运行
 while check_python_process; do
     echo "已经有python程序正在运行"
@@ -81,7 +80,7 @@ done
 
 echo "程序开始运行"
 
-nohup /home/liugangqiang/miniconda3/envs/genn-4/bin/python /home/liugangqiang/mam-allen-20250107/mam-allen/run_multiarea.py >>$log_file 2>&1 & echo "python脚本进程号:$!" >> $log_file
+nohup /home/liugangqiang/miniconda3/envs/genn-4/bin/python /home/liugangqiang/mam-allen-20250107/mam-allen/run_multiarea2.py >>$log_file 2>&1 & echo "python脚本进程号:$!" >> $log_file
 
 # 检测程序是否在运行
 monitor >> $log_file 2>&1 & 

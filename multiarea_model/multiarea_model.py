@@ -47,6 +47,8 @@ from .multiarea_helpers import (
     indegree_to_synapse_numbers,
     matrix_to_dict,
     vector_to_dict,
+    extract_area_dict,
+    plt_matrix,
 )
 import pygenn
 if pygenn.__version__ == "5.0.0":
@@ -134,7 +136,7 @@ class MultiAreaModel:
                 self.custom_params = json.load(f)
         nested_update(self.params, self.custom_params)
         
-        print("tmp_data_fn=",tmp_data_fn)
+        # print("tmp_data_fn=",tmp_data_fn)
         with open(tmp_data_fn, 'r') as f:
             dat = json.load(f)
 
@@ -145,10 +147,10 @@ class MultiAreaModel:
             self.structure_reversed[area] = deepcopy(dat['structure'][area])
             self.structure_reversed[area].reverse()
         self.N = dat['neuron_numbers']
-        print("self.N=",self.N)
+        # print("self.N=",self.N)
         self.synapses = dat['synapses']
         self.W = dat['synapse_weights_mean']
-        # print("W=",self.W)
+        # print("W=",self.W['TH'])
         self.W_sd = dat['synapse_weights_sd']
         # print("W_sd=",self.W_sd)
         self.area_list = complete_area_list
@@ -377,6 +379,53 @@ class MultiAreaModel:
         self.W_matrix /= np.sqrt(K_scaling)
         
         #文件上传
+    
+    def create_current(self,rates=None):
+        if rates is None:
+            rates = {"H1" : 10.,"V23" : 10.,"S23" : 10.,"E23" : 10.,"P23" : 10.,"V4" : 10.,"S4" : 10.,"E4" : 10.,"P4" : 10.,"V5" : 10.,"S5" : 10.,"E5" : 10.,"P5" : 10.,"V6" : 10.,"S6" : 10.,"E6" : 10.,"P6" : 10.}  
+        
+        #Calculate number of synapses and Synaptic strength
+        self.K_inner = {}
+        self.W_inner = {}
+        for area in complete_area_list:
+            self.K_inner[area] = extract_area_dict(self.K, self.structure, area,area)
+            self.W_inner[area] = extract_area_dict(self.W, self.structure, area,area)
+
+        #Calculate the theoretical intra-area current
+        self.current_intra = {}
+        for area in complete_area_list:
+            self.current_intra[area] = {}            
+            for target_pop in self.structure[area]:
+                self.current_intra[area][target_pop] = {}
+                                
+                i_inner = 0.
+                for source_pop in self.structure[area]:
+                    i_inner = i_inner + self.K_inner[area][target_pop][source_pop]*self.W_inner[area][target_pop][source_pop]*0.5*rates[source_pop]*1e-3
+                    self.current_intra[area][target_pop][source_pop] = self.K_inner[area][target_pop][source_pop]*self.W_inner[area][target_pop][source_pop]*0.5*rates[source_pop]*1e-3
+
+                self.current_intra[area][target_pop]["total"] = i_inner
+
+        #刚刚完成脑区间电流计算
+        self.current_inter = {}
+        for target_area in complete_area_list:
+            self.current_inter[target_area] = {}
+            for target_pop in self.structure[target_area]:
+                self.current_inter[target_area][target_pop] = {}
+                i_total = 0.
+                for source_area in complete_area_list:
+                    i_area = 0.
+                    for source_pop in self.structure[source_area]:
+                        i_area += self.K[target_area][target_pop][source_area][source_pop]*self.W[target_area][target_pop][source_area][source_pop]*0.5*10.*1e-3
+                    self.current_inter[target_area][target_pop][source_area] = i_area
+                    i_total += i_area
+                self.current_inter[target_area][target_pop]['total'] = i_total
+                    
+    def plt_matrix_weight(self,area):
+        plt_matrix(self.K_inner[area],area,data_path,type='k_matrix',label_max=False)
+        plt_matrix(self.W_inner[area],area,data_path,type='w_matrix',label_max=False)
+        plt_matrix(self.current_intra[area],'V1',data_path,type='current_intra')
+        plt_matrix(self.current_inter[area],'V1',data_path,type='current_inter')
+    
     def upload_file(self):
         #文件路径信息
         dir_path = self.simulation.data_dir
@@ -408,7 +457,6 @@ class MultiAreaModel:
             # 如果响应中没有sid，则打印错误信息并退出
             print("登录失败，响应内容：", auth_response_json)
             exit()
-    
     
         #  打包文件夹
         with tarfile.open(file_path, "w") as tar:

@@ -22,9 +22,10 @@ from nested_dict import nested_dict
 from itertools import product
 import sys
 from config import base_path,data_path
+# from default_params import pop_list_norm, pop_list_TH
 
 try:
-    from multiarea_model.default_params import network_params, nested_update
+    from multiarea_model.default_params import network_params, nested_update,pop_list_norm, pop_list_TH
     from multiarea_model.data_multiarea.VisualCortex_Data import process_raw_data
 except:
     
@@ -40,7 +41,6 @@ except:
         sys.path.append(grandparent_dir_path)
     from default_params import network_params, nested_update
     from VisualCortex_Data import process_raw_data
-
 
 def compute_Model_params(out_label='', mode='default'):
     """
@@ -123,7 +123,6 @@ def compute_Model_params(out_label='', mode='default'):
                  'PIP', 'PO', 'DP', 'MIP', 'MDP', 'VIP', 'LIP', 'PITv', 'PITd',
                  'MSTl', 'CITv', 'CITd', 'FEF', 'TF', 'AITv', 'FST', '7a', 'STPp',
                  'STPa', '46', 'AITd', 'TH']
-    
 
     termination_layers = {'F': ['4'], 'M': ['1', '23', '5', '6'], 'C': [
         '1', '23', '4', '5', '6'], 'S': ['1', '23']}
@@ -201,7 +200,7 @@ def compute_Model_params(out_label='', mode='default'):
     fac_nu_ext_5 = conn_params['fac_nu_ext_5']
     fac_nu_ext_6 = conn_params['fac_nu_ext_6']
     fac_nu_ext_1H = conn_params['fac_nu_ext_1H']
-    print("fac_nu_ext_1H=",fac_nu_ext_1H)
+    # print("fac_nu_ext_1H=",fac_nu_ext_1H)
     fac_nu_ext_23V = conn_params['fac_nu_ext_23V']
     fac_nu_ext_4V = conn_params['fac_nu_ext_4V']
     fac_nu_ext_5V = conn_params['fac_nu_ext_5V']
@@ -248,8 +247,11 @@ def compute_Model_params(out_label='', mode='default'):
     g_V = conn_params['g_V']
     g_S = conn_params['g_S']
     g_P = conn_params['g_P']
-    g_dict = conn_params['g_dict']
-    print("model_g=",g_dict)
+    alpha_TH = conn_params['alpha_TH']
+    alpha_norm = conn_params['alpha_norm']
+    beta_TH = conn_params['beta_TH']
+    beta_norm = conn_params['beta_norm']
+    # print("model_g=",alpha_TH)
 
     # relative SD of normally distributed synaptic weights
     PSC_rel_sd_normal = conn_params['PSC_rel_sd_normal']
@@ -533,15 +535,9 @@ def compute_Model_params(out_label='', mode='default'):
             syn = 0.0
             if neuronal_numbers[target_area][target_pop] != 0.0:
                 for source_pop in population_list:
-                    micro_in_degree = num_IA_synapses(target_area,
-                                                      target_pop, source_pop) / neuronal_numbers[
-                                                          target_area][target_pop]
-                    real_in_degree = (num_IA_synapses(target_area, target_pop, source_pop,
-                                                      area_model='real')
-                                      / neuronal_numbers_fullscale[
-                                                         target_area][target_pop])
-                    syn += (real_in_degree - micro_in_degree) * \
-                        neuronal_numbers[target_area][target_pop]
+                    micro_in_degree = num_IA_synapses(target_area,target_pop, source_pop) / neuronal_numbers[target_area][target_pop]
+                    real_in_degree = (num_IA_synapses(target_area, target_pop, source_pop,area_model='real') / neuronal_numbers_fullscale[target_area][target_pop])
+                    syn += (real_in_degree - micro_in_degree) * neuronal_numbers[target_area][target_pop]
             s_area += syn
         synapses_type_II[target_area] = s_area
 
@@ -558,8 +554,7 @@ def compute_Model_params(out_label='', mode='default'):
         cc_proportion = (1.-Intrinsic_FLN_completed_fullscale[target_area]['mean']-0.013)
         norm_factor = cc_proportion / sum(FLN_EDR_completed[target_area].values())
         for source_area in FLN_EDR_completed[target_area]:
-            FLN_completed[target_area][source_area] = norm_factor * FLN_EDR_completed[
-                target_area][source_area]
+            FLN_completed[target_area][source_area] = norm_factor * FLN_EDR_completed[target_area][source_area]
 
     """
     2. Process Binzegger data
@@ -1289,8 +1284,7 @@ def compute_Model_params(out_label='', mode='default'):
         for target_pop, source_area, source_pop in product(population_list, area_list,
                                                            population_list):
             if source_area != target_area:
-                CC_synapses += synapse_numbers[target_area][
-                    target_pop][source_area][source_pop]
+                CC_synapses += synapse_numbers[target_area][target_pop][source_area][source_pop]
         ext_syn = N_syn_tot * (1. - Intrinsic_FLN_completed[target_area]['mean']) - CC_synapses
         # print("ext_syn=",ext_syn)
         # if ext_syn > 0:
@@ -1473,28 +1467,36 @@ def compute_Model_params(out_label='', mode='default'):
                      ((tau_m_V / tau_syn_V) ** (- tau_m_V / (tau_m_V - tau_syn_V)) -
                       (tau_m_V / tau_syn_V) ** (- tau_syn_V / (tau_m_V - tau_syn_V)))) ** (-1))
     
-    print("PSC_h_over_PSP_h=",PSC_h_over_PSP_h)
-    print("PSC_s_over_PSP_s=",PSC_s_over_PSP_s)
-    print("PSC_p_over_PSP_p=",PSC_p_over_PSP_p)
-    print("PSC_v_over_PSP_v=",PSC_v_over_PSP_v)
+    # print("PSC_h_over_PSP_h=",PSC_h_over_PSP_h)
+    # print("PSC_s_over_PSP_s=",PSC_s_over_PSP_s)
+    # print("PSC_p_over_PSP_p=",PSC_p_over_PSP_p)
+    # print("PSC_v_over_PSP_v=",PSC_v_over_PSP_v)
  
 
-    beta_dict = {
-        "H1" : 3.9,
+    beta_norm = {
+        "H1" : 1.,
         "E23" : 0.71, "P23" : 0.48, "S23" : 1., "V23" :0.9,
         "E4" : 1.66, "S4" : 0.24, "V4" : 0.46, "P4" : 0.8,
         "E5" : 0.95, "S5" : 0.48, "V5" : 1.2, "P5" :1.09,
         "E6" : 1.12, "S6" : 0.63, "V6" : 0.5, "P6" : 0.42,
     }   
-        
-    # beta_dict = {
+    
+    beta_TH = {
+        "H1" : 2.2,
+        "E23" : 1.9, "P23" : 0.82, "S23" : 0.98, "V23" : 1.42,
+        "E4" :1., "S4" :1., "V4": 1., "P4":1.,
+        "E5" : 1.2, "S5" : 0.5, "V5" : 1.36, "P5" :1.6,
+        "E6" : 1.5, "S6" : 0.7, "V6" : 0.6, "P6" : 0.5,
+    }   
+    
+    # beta_norm = {
     #     "H1" : 3.9,
     #     "E23" : 0.8, "P23" : 0.48, "S23" : 1., "V23" :0.9,
     #     "E4" : 1.66, "S4" : 0.24, "V4" : 0.44, "P4" : 0.78,
     #     "E5" : 0.91, "S5" : 0.48, "V5" : 1.1, "P5" :1.05,
     #     "E6" : 1.12, "S6" : 0.63, "V6" : 0.4, "P6" : 0.42,
     # }        
-    # beta_dict = {
+    # beta_norm = {
     #     "H1" : 3.9,
     #     "E23" : 1.3, "P23" : 0.5, "S23" : 1., "V23" :1.,
     #     "E4" : 2.1, "S4" : 0.3, "V4" : 0.4, "P4" : 0.7,
@@ -1502,136 +1504,152 @@ def compute_Model_params(out_label='', mode='default'):
     #     "E6" : 1.5, "S6" : 0.63, "V6" : 0.4, "P6" : 0.42,
     # }        
     
-    print("beta_dict=",beta_dict)    
+    # print("beta_norm=",beta_norm)    
     
     synapse_weights_mean = nested_dict()
+    synapse_current_mean = nested_dict()
+    # print("alpha_TH=",alpha_TH)
+    # print("alpha_norm=",alpha_norm)
     #计算神经元之间的突触权重
-    for target_area, target_pop, source_area, source_pop in product(area_list, population_list,area_list, population_list):
-   
-        
-        if 'E' in source_pop:
-            synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_e_over_PSP_e * g_dict[source_pop] * PSP_e
-            # print("weight_e =", PSC_e_over_PSP_e * PSP_e)
-            # if target_pop[0] == 'H':
-            #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = synapse_weights_mean[target_area][target_pop][source_area][source_pop]
-            #     if target_pop == 'H4':
-            #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] = synapse_weights_mean[target_area][target_pop][source_area][source_pop]
-            # if target_pop[0] == 'P':
-            #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = synapse_weights_mean[target_area][target_pop][source_area][source_pop]
-        if 'H' in source_pop:
-            synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_h_over_PSP_h * g_H * g_dict[source_pop] * PSP_e
-            # print("weight=",synapse_weights_mean[target_area][target_pop][source_area][source_pop])
-            # print("PSC_h_over_PSP_h=",PSC_h_over_PSP_h)
-        if 'P' in source_pop:
-            if 'P' in target_pop:
-                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_p_over_PSP_p * g_P * g_dict[source_pop] * PSP_e 
-                # print("PSC_p_over_PSP_p=",PSC_p_over_PSP_p)
-            else:
-                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_p_over_PSP_p * g_P * g_dict[source_pop] * PSP_e
-            # print("PSC_p_over_PSP_p=",PSC_p_over_PSP_p)
-        if "S" in source_pop:
-            synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_s_over_PSP_s * g_S * g_dict[source_pop] * PSP_e
-            
-        if "V" in source_pop:
-            synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_v_over_PSP_v * g_V * g_dict[source_pop] * PSP_e
-            # print("PSC_s_over_PSP_s=",PSC_s_over_PSP_s)
-            # print("weight_i=",PSC_i_over_PSP_i * g * PSP_e)
-        # if source_pop[1:] == '23' and target_pop[1:] == '23':
-
-        if target_area == "CITd" :
-            if source_area == "V4":
-                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.     
-
-        if source_pop[0] == 'E':
-            synapse_weights_mean[target_area][target_pop][source_area][source_pop] *= beta_dict[target_pop]
-        
-        #调整到H1的输入
-        if  target_pop == 'H1':
-            if source_pop[0] == 'E':
-                pass
-                # synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
-            else:
-                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.5*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
-
-        # #调整到23的输入
-        # if source_pop[0] == 'E' and target_pop == 'E23':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
-        # if source_pop[0] == 'E' and target_pop == 'P23':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]
-        # if source_pop[0] == 'E' and target_pop == 'S23':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]
-
-        # if source_pop[0] == 'E' and target_pop == 'V23':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]
-
-        if source_pop == 'S23' and target_pop == 'S23':
-            synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 2*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
-
-        if source_pop == 'V23' and target_pop == 'V23':
-            synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 2.*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
-
-        if source_pop == 'S23' and target_pop == 'V23':
-            synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.66*synapse_weights_mean[target_area][target_pop][source_area][source_pop]          
-
-        if source_pop == 'P23' and target_pop == 'P23':
-            synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.6*synapse_weights_mean[target_area][target_pop][source_area][source_pop]          
-
-        #调整4层输入
-        # if source_pop[0] == 'E' and target_pop == 'E4':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
-        # if source_pop[0] == 'E' and target_pop == 'S4':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]
-        # if source_pop[0] == 'E' and target_pop == 'V4':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]
-        # if source_pop[0] == 'E' and target_pop == 'P4':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]            
-        
-        # #调整5层的输入
-        # if source_pop[0] == 'E' and target_pop == 'E5':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]
-        # if source_pop[0] == 'E' and target_pop == 'S5':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]
-        # if source_pop[0] == 'E' and target_pop == 'V5':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]     
-        # if source_pop[0] == 'E' and target_pop == 'P5':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]       
-            
-        # if source_pop == 'E5' and (target_pop == "P5" or target_pop == "V5"):
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = synapse_weights_mean[target_area][target_pop][source_area][source_pop]
-
-        # if source_pop == 'S5' and (target_pop == "P5" or target_pop == "V5"):
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = synapse_weights_mean[target_area][target_pop][source_area][source_pop]            
-        
-        if source_pop == 'E5':
-            if target_pop == 'E23' or target_pop == 'E4':
-                synapse_weights_mean[target_area][target_pop][source_area][source_pop] *= 1.2            
-
-        
-        #调整6层输入
-        # if source_pop[0] == 'E' and target_pop == 'E6':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
-        # if source_pop[0] == 'E' and target_pop == 'S6':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]
-        # if source_pop[0] == 'E' and target_pop == 'V6':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]
-        # if source_pop[0] == 'E' and target_pop == 'P6':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = beta_dict[target_pop]*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
-        #调整
-
-        #调整层间的连接
-        # if source_pop == 'E6' and target_pop == 'E23':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
-
-        # # if target_pop == 'H1':
-        #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.
+    # if source_area == 'TH':
+    #     source_pop_list = pop_list_TH
+    # else:
+    #     source_pop_list = pop_list_norm
     
+    # if target_area == 'TH':
+    #     target_pop_list = pop_list_TH
+    # else:
+    #     target_pop_list = pop_list_norm
+    
+    
+    for target_area, target_pop, source_area, source_pop in product(area_list, population_list,area_list, population_list):
+        if source_area == 'TH':
+            if 'E' in source_pop:
+                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_e_over_PSP_e * alpha_TH[source_pop]*beta_TH[target_pop] * PSP_e
+            if 'H' in source_pop:
+                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_h_over_PSP_h * g_H * alpha_TH[source_pop] * PSP_e
+            if 'P' in source_pop:
+                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_p_over_PSP_p * g_P * alpha_TH[source_pop] * PSP_e
+            if "S" in source_pop:
+                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_s_over_PSP_s * g_S * alpha_TH[source_pop] * PSP_e
+            if "V" in source_pop:
+                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_v_over_PSP_v * g_V * alpha_TH[source_pop] * PSP_e
+
+            #调整到H1的输入
+            if  target_pop == 'H1':
+                if source_pop[0] == 'E':
+                    pass
+                else:
+                    synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.5*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
+
+
+        else:
+        # for target_area, target_pop, source_area, source_pop in product(area_list, population_list,area_list, population_list):
+            if 'E' in source_pop:
+                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_e_over_PSP_e * alpha_norm[source_pop]*beta_norm[target_pop] * PSP_e
+            if 'H' in source_pop:
+                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_h_over_PSP_h * g_H * alpha_norm[source_pop] * PSP_e
+            if 'P' in source_pop:
+                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_p_over_PSP_p * g_P * alpha_norm[source_pop] * PSP_e
+            if "S" in source_pop:
+                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_s_over_PSP_s * g_S * alpha_norm[source_pop] * PSP_e
+            if "V" in source_pop:
+                synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_v_over_PSP_v * g_V * alpha_norm[source_pop] * PSP_e
+
+            #调整到H1的输入
+            if  target_pop == 'H1':
+                if source_pop[0] == 'E':
+                    pass
+                else:
+                    synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.5*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
+
+
+    # for target_area, target_pop, source_area, source_pop in product(area_list, population_list,area_list, population_list):
+        # if area == "TH":
+        #     # print("source_area=",source_area)
+        #     if 'E' in source_pop:
+        #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_e_over_PSP_e * alpha_TH[source_pop] * PSP_e
+        #     if 'H' in source_pop:
+        #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_h_over_PSP_h * g_H * alpha_TH[source_pop] * PSP_e
+        #     if 'P' in source_pop:
+        #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_p_over_PSP_p * g_P * alpha_TH[source_pop] * PSP_e
+        #     if "S" in source_pop:
+        #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_s_over_PSP_s * g_S * alpha_TH[source_pop] * PSP_e
+        #     if "V" in source_pop:
+        #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_v_over_PSP_v * g_V * alpha_TH[source_pop] * PSP_e
+
+        #     if target_area == "CITd" :
+        #         if source_area == "V4":
+        #             synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.     
+
+        #     if source_pop[0] == 'E':
+        #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] *= beta_TH[target_pop]
+
+
+        #     if source_pop == 'S23' and target_pop == 'S23':
+        #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 2*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
+
+        #     if source_pop == 'V23' and target_pop == 'V23':
+        #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 2.*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
+
+        #     if source_pop == 'S23' and target_pop == 'V23':
+        #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.66*synapse_weights_mean[target_area][target_pop][source_area][source_pop]          
+
+        #     if source_pop == 'P23' and target_pop == 'P23':
+        #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.6*synapse_weights_mean[target_area][target_pop][source_area][source_pop]          
+
+        #     if source_pop == 'E5':
+        #         if target_pop == 'E23' or target_pop == 'E4':
+        #             synapse_weights_mean[target_area][target_pop][source_area][source_pop] *= 1.2            
+        # else:
+            # print("source_area=",source_area)
+            # if 'E' in source_pop:
+            #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_e_over_PSP_e * alpha_norm[source_pop] * PSP_e
+            # if 'H' in source_pop:
+            #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_h_over_PSP_h * g_H * alpha_norm[source_pop] * PSP_e
+            # if 'P' in source_pop:
+            #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_p_over_PSP_p * g_P * alpha_norm[source_pop] * PSP_e
+            # if "S" in source_pop:
+            #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_s_over_PSP_s * g_S * alpha_norm[source_pop] * PSP_e
+            # if "V" in source_pop:
+            #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = PSC_v_over_PSP_v * g_V * alpha_norm[source_pop] * PSP_e
+
+            # if target_area == "CITd" :
+            #     if source_area == "V4":
+            #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.     
+
+            # if source_pop[0] == 'E':
+            #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] *= beta_norm[target_pop]
+
+            # #调整到H1的输入
+            # if  target_pop == 'H1':
+            #     if source_pop[0] == 'E':
+            #         pass
+            #     else:
+            #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.5*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
+
+            # if source_pop == 'S23' and target_pop == 'S23':
+            #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 2*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
+
+            # if source_pop == 'V23' and target_pop == 'V23':
+            #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 2.*synapse_weights_mean[target_area][target_pop][source_area][source_pop]        
+
+            # if source_pop == 'S23' and target_pop == 'V23':
+            #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.66*synapse_weights_mean[target_area][target_pop][source_area][source_pop]          
+
+            # if source_pop == 'P23' and target_pop == 'P23':
+            #     synapse_weights_mean[target_area][target_pop][source_area][source_pop] = 0.6*synapse_weights_mean[target_area][target_pop][source_area][source_pop]          
+
+            # if source_pop == 'E5':
+            #     if target_pop == 'E23' or target_pop == 'E4':
+            #         synapse_weights_mean[target_area][target_pop][source_area][source_pop] *= 1.2            
+             
     #给突触权重加入噪声
     synapse_weights_sd = nested_dict()
     for target_area, target_pop, source_area, source_pop in product(area_list, population_list,
                                                                     area_list, population_list):
         mean = abs(synapse_weights_mean[target_area][target_pop][source_area][source_pop])
-        if ((lognormal_weights and 'E' in target_pop and 'E' in source_pop) or
-                lognormal_weights and not lognormal_EE_only):
+        if ((lognormal_weights and 'E' in target_pop and 'E' in source_pop) or lognormal_weights and not lognormal_EE_only):
             sd = PSC_rel_sd_lognormal * mean
         else:
             sd = PSC_rel_sd_normal * mean
@@ -1643,8 +1661,7 @@ def compute_Model_params(out_label='', mode='default'):
     # Apply specific weight for intra_areal 4E-->23E connections
     for area in area_list:
         synapse_weights_mean[area]['E23'][area]['E4'] = PSP_e_23_4 * PSC_e_over_PSP_e
-        synapse_weights_sd[area]['E23'][area]['E4'] = (PSC_rel_sd_normal * PSP_e_23_4
-                                                       * PSC_e_over_PSP_e)    
+        synapse_weights_sd[area]['E23'][area]['E4'] = (PSC_rel_sd_normal * PSP_e_23_4* PSC_e_over_PSP_e)    
         
     # # Apply specific weight for intra_areal E5-->H1 connections
     # for area in area_list:
@@ -1655,10 +1672,8 @@ def compute_Model_params(out_label='', mode='default'):
     for target_area, source_area in product(area_list, area_list):
         if source_area != target_area:
             for target_pop, source_pop in product(population_list, population_list):
-                synapse_weights_mean[target_area][target_pop][
-                    source_area][source_pop] *= cc_weights_factor
-                synapse_weights_sd[target_area][target_pop][
-                    source_area][source_pop] *= cc_weights_factor
+                synapse_weights_mean[target_area][target_pop][source_area][source_pop] *= cc_weights_factor
+                synapse_weights_sd[target_area][target_pop][source_area][source_pop] *= cc_weights_factor
 
     # Apply cc_weights_I_factor for all CC connections
     for target_area, source_area in product(area_list, area_list):
@@ -1674,7 +1689,7 @@ def compute_Model_params(out_label='', mode='default'):
             synapse_weights_mean[target_area][target_pop]['external'] = {
                 'external': PSC_e_over_PSP_e * PSP_ext}
     
-    print("w_ext=",PSC_e_over_PSP_e * PSP_ext)
+    # print("w_ext=",PSC_e_over_PSP_e * PSP_ext)
 
     synapse_weights_mean = synapse_weights_mean.to_dict()
     synapse_weights_sd = synapse_weights_sd.to_dict()
@@ -1686,6 +1701,22 @@ def compute_Model_params(out_label='', mode='default'):
     '$(prefix) + '_Data_Model' + $(out_label) + .json'.
     """
 
+    # from treelib import Node, Tree
+
+    # def add_nodes(tree, parent, dictionary):
+    #     for key, value in dictionary.items():
+    #         unique_id = f"{parent}_{key}"  # 生成唯一 ID
+    #         if isinstance(value, dict):
+    #             tree.create_node(key, unique_id, parent=parent)
+    #             add_nodes(tree, unique_id, value)
+    #         else:
+    #             tree.create_node(f"{key}: {value}", f"{unique_id}_leaf", parent=parent)
+    
+    # tree = Tree()  
+    # tree.create_node("Root", "root")
+    # add_nodes(tree, "root", synapse_weights_mean)
+    # tree.show()
+    
     collected_data = {'area_list': area_list,
                       'av_indegree_V1': av_indegree_V1,
                       'population_list': population_list,
@@ -1710,11 +1741,11 @@ def compute_Model_params(out_label='', mode='default'):
     #                                            'Data_Model',
     #                                            out_label)),
     #                                  'json'))))
-    print("path=",data_path,
-                           '.'.join(('_'.join((prefix,
-                                               'Data_Model',
-                                               out_label)),
-                                     'json')))
+    # print("path=",data_path,
+    #                        '.'.join(('_'.join((prefix,
+    #                                            'Data_Model',
+    #                                            out_label)),
+    #                                  'json')))
     with open(os.path.join(data_path,
                            '.'.join(('_'.join((prefix,
                                                'Data_Model',

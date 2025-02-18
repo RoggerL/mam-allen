@@ -37,7 +37,20 @@ def get_population_list():
                 pop_list.append(neuron_type+layer_type)
     return pop_list
 
-population_list = get_population_list()
+def get_population_list_TH():
+    pop_list = []
+    neuron_types = ["E","S","P","V"]
+    layer_types = ["1","23","5","6"]
+    for layer_type in layer_types:
+        if layer_type == "1":
+            pop_list.append("H1")
+        else:
+            for neuron_type in neuron_types:
+                pop_list.append(neuron_type+layer_type)
+    return pop_list
+
+pop_list_norm = get_population_list()
+pop_list_TH = get_population_list_TH()
 
 f1 = open(os.path.join(base_path, 'multiarea_model/data_multiarea',
                        'viscortex_raw_data.json'), 'r')
@@ -251,7 +264,26 @@ connection_params = {
     'g_P': -2.,
     'g_S': -2.,
     
-    'g_dict':
+    'alpha_norm': {
+          'H1':  1,
+          'E23': 1,
+          'S23': 1,
+          'V23': 1,
+          'P23': 1,  
+          'E4':  1,
+          'S4':  1,
+          'V4':  1,
+          'P4':  1,
+          'E5':  1,
+          'S5':  1,
+          'V5':  1,
+          'P5':  1,
+          'E6':  1,
+          'S6':  1,
+          'V6':  1,
+          'P6':  1,
+        },
+    'alpha_TH':
         {
           'H1':  1,
           'E23': 1,
@@ -271,7 +303,17 @@ connection_params = {
           'V6':  1,
           'P6':  1,
         },
-
+    'beta_norm':{"H1" : 3.9,
+                 "E23" : 0.71, "P23" : 0.48, "S23" : 1., "V23" :0.9,
+                 "E4" : 1.66, "S4" : 0.24, "V4" : 0.46, "P4" : 0.8,
+                 "E5" : 0.95, "S5" : 0.48, "V5" : 1.2, "P5" :1.09,
+                 "E6" : 1.12, "S6" : 0.63, "V6" : 0.5, "P6" : 0.42},
+    'beta_TH':{"H1" : 1.,
+               "E23" : 1., "P23" : 1., "S23" : 1., "V23" : 1.,
+               "E4" : 1.,  "S4" : 1.,  "V4" : 1.,  "P4" : 1.,
+               "E5" : 1., "S5" : 1.,  "V5" : 1.,  "P5" : 1.,
+               "E6" : 1.,  "S6" : 1.,  "V6" : 1.,  "P6" : 1. },
+        
     # compute average indegree in V1 from data
     'av_indegree_V1': np.mean([av_indegree_Cragg, av_indegree_OKusky]),
 
