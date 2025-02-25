@@ -825,9 +825,12 @@ class Analysis:
                 elif pop.find('V') > (-1):
                     # pcolor = '#6B8E23'
                     pcolor = '#a6a123'
-                else:
+                elif pop.find('S') > (-1):
                     # pcolor = '#006400'
                     pcolor = '#c82528'
+                else:
+                    pcolor = '#4a7538'
+                
 
                 for k in range(n_to_plot[pop]):
                     spike_times = pop_data[

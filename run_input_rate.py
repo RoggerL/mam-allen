@@ -595,6 +595,16 @@ def simulation_block(block_id, device_id,param_name = 'input_value'):
         pattern = r'^(.+?)connection$'
         match = re.match(pattern, param_name)
         alpha_dict_norm[match.group(1)] += 0.1*block_id
+
+    if 'conprecent' in param_name:
+        pattern = r'^(.+?)conprecent$'
+        match = re.match(pattern, param_name)
+        alpha_dict_norm[match.group(1)] *= (1+0.1*block_id)
+        
+    if 'conmultiple' in param_name:
+        pattern = r'^(.+?)conmultiple$'
+        match = re.match(pattern, param_name)
+        alpha_dict_norm[match.group(1)] *= (1+block_id)
         
     
     conn_params = {'replace_non_simulated_areas': 'hom_poisson_stat',
@@ -646,12 +656,30 @@ def simulation_block(block_id, device_id,param_name = 'input_value'):
                      'V0_sd': 50.,
                      'single_neuron_dict': single_neuron_dict
                      }
+    delay_params = {
+    # Local dendritic delay for excitatory transmission 
+    'delay_e': 1.5, #ms
+    # Local dendritic delay for inhibitory transmission 
+    'delay_i': 0.75, #ms
+    # Relative standard deviation for both local and inter-area delays
+    'delay_rel': 0.5, # ms
+    # Axonal transmission speed to compute interareal delays 
+    'interarea_speed': 3.5 #mm/ms
+    }
+    
+    if param_name == 'delay_e':
+        delay_params['delay_e'] += 0.1*block_id
+    
+    if param_name == 'delay_i':
+        delay_params['delay_i'] += 0.1*block_id
+    
     network_params = {'N_scaling': 1.,
                       'K_scaling': 1.,
                       'fullscale_rates': os.path.join(base_path, 'tests/fullscale_rates2.json'),
                       'input_params': input_params,
                       'connection_params': conn_params,
-                      'neuron_params': neuron_params}
+                      'neuron_params': neuron_params,
+                      'delay_params': delay_params}
 
     sim_params = {'t_sim': 1000.,
                   'master_seed': 50,
@@ -746,10 +774,10 @@ def simulation_block(block_id, device_id,param_name = 'input_value'):
             K_in = extract_area_dict(M.K, M.structure, area,area)
             W_in = extract_area_dict(M.W, M.structure, area,area)
             if True:
-                rates = {pop :M.analysis.pop_rates[area][pop][0] for pop in pop_list}
+                rates = {pop+"_"+area :M.analysis.pop_rates[area][pop][0] for pop in pop_list}
                 print("rates=",rates)
                 # a = dict(label=M.label,input_value=block_id)
-                a = dict(label=M.label,param_value=block_id)
+                a = dict(label=M.simulation.label,param_value=block_id)
                 a.update(rates)
                 
                 with dataset.connect(f'sqlite:///{data_path}/dataset.db') as db:
@@ -879,7 +907,7 @@ def run_simulation(args):
         print(f"Error: {e}")
     finally:
         # 任务完成后释放设备
-        available_devices.append(device)
+        available_devices.put(device)
 
 def multi_program(device_list, num_tasks,param_name = 'input_value'):
     
@@ -928,6 +956,15 @@ if __name__ == "__main__":
     #     multi_program(device_list, num_tasks,param_name=pop)
     
     # V1各群神经元放电率随每群神经元投射的连接强度的变化
-    for param_name in pop_list_norm:
-        multi_program(device_list, num_tasks,param_name="{}connection".format(param_name))
+    # for param_name in pop_list_norm:
+    #     multi_program(device_list, num_tasks,param_name="{}connection".format(param_name))
     # simulation_block(block_id= 5,device_id=5,param_name = 'S5connection')
+
+    # for param_name in pop_list_norm:
+    #     multi_program(device_list, num_tasks,param_name="{}conprecent".format(param_name))
+
+    for param_name in pop_list_norm:
+        multi_program(device_list, num_tasks,param_name="{}conmultiple".format(param_name))
+        
+    # multi_program(device_list, num_tasks,param_name='delay_e')
+    # multi_program(device_list, num_tasks,param_name='delay_i')
