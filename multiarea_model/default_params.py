@@ -308,11 +308,13 @@ connection_params = {
                  "E4" : 1.66, "S4" : 0.24, "V4" : 0.46, "P4" : 0.8,
                  "E5" : 0.95, "S5" : 0.48, "V5" : 1.2, "P5" :1.09,
                  "E6" : 1.12, "S6" : 0.63, "V6" : 0.5, "P6" : 0.42},
-    'beta_TH':{"H1" : 1.,
-               "E23" : 1., "P23" : 1., "S23" : 1., "V23" : 1.,
-               "E4" : 1.,  "S4" : 1.,  "V4" : 1.,  "P4" : 1.,
-               "E5" : 1., "S5" : 1.,  "V5" : 1.,  "P5" : 1.,
-               "E6" : 1.,  "S6" : 1.,  "V6" : 1.,  "P6" : 1. },
+    'beta_TH':{
+        "H1" : 2.2,
+        "E23" : 1.9, "P23" : 0.82, "S23" : 0.98, "V23" : 1.42,
+        "E4" :1., "S4" :1., "V4": 1., "P4":1.,
+        "E5" : 1.2, "S5" : 0.5, "V5" : 1.36, "P5" :1.6,
+        "E6" : 1.5, "S6" : 0.7, "V6" : 0.6, "P6" : 0.5,
+    },
         
     # compute average indegree in V1 from data
     'av_indegree_V1': np.mean([av_indegree_Cragg, av_indegree_OKusky]),
@@ -396,6 +398,9 @@ Input parameters
 input_params = {
     # Whether to use Poisson or DC input (True or False)
     'poisson_input': True,
+    
+    # input type include ： 'poisson', 'DC' and 'inject'
+    'inject_current' : True,
 
     # synapse type for Poisson input
     'syn_type_ext': 'static_synapse_hpc',

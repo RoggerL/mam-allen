@@ -518,7 +518,7 @@ class Analysis:
             - 'rect_time_window' : width of the moving rectangular function
         """
         default_dict = {'areas': self.areas_loaded, 'pops': 'complete',
-                        'kernel': 'binned', 'resolution': 1.0}
+                        'kernel': 'binned', 'resolution': 0.1}
         params = ah._create_parameter_dict(
             default_dict, self.T, **keywords)
 

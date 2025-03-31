@@ -80,7 +80,12 @@ done
 
 echo "程序开始运行"
 
-nohup /home/liugangqiang/miniconda3/envs/genn-4/bin/python /home/liugangqiang/mam-allen-20250107/mam-allen/run_input_rate.py >>$log_file 2>&1 & echo "python脚本进程号:$!" >> $log_file
+# nohup /home/liugangqiang/miniconda3/envs/genn-4/bin/python /home/liugangqiang/mam-allen-20250107/mam-allen/run_input_rate.py >>$log_file 2>&1 & echo "python脚本进程号:$!" >> $log_file
+
+SCRIPT_PATH=$(realpath "$0")
+SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
+
+nohup /home/liugangqiang/miniconda3/envs/genn-4/bin/python "$SCRIPT_DIR/run_input_rate.py" >>$log_file 2>&1 & echo "python脚本进程号:$!" >> $log_file
 
 # 检测程序是否在运行
 monitor >> $log_file 2>&1 & 

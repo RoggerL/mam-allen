@@ -1473,21 +1473,21 @@ def compute_Model_params(out_label='', mode='default'):
     # print("PSC_v_over_PSP_v=",PSC_v_over_PSP_v)
  
 
-    beta_norm = {
-        "H1" : 1.,
-        "E23" : 0.71, "P23" : 0.48, "S23" : 1., "V23" :0.9,
-        "E4" : 1.66, "S4" : 0.24, "V4" : 0.46, "P4" : 0.8,
-        "E5" : 0.95, "S5" : 0.48, "V5" : 1.2, "P5" :1.09,
-        "E6" : 1.12, "S6" : 0.63, "V6" : 0.5, "P6" : 0.42,
-    }   
+    # beta_norm = {
+    #     "H1" : 1.,
+    #     "E23" : 0.71, "P23" : 0.48, "S23" : 1., "V23" :0.9,
+    #     "E4" : 1.66, "S4" : 0.24, "V4" : 0.46, "P4" : 0.8,
+    #     "E5" : 0.95, "S5" : 0.48, "V5" : 1.2, "P5" :1.09,
+    #     "E6" : 1.12, "S6" : 0.63, "V6" : 0.5, "P6" : 0.42,
+    # }      
     
-    beta_TH = {
-        "H1" : 2.2,
-        "E23" : 1.9, "P23" : 0.82, "S23" : 0.98, "V23" : 1.42,
-        "E4" :1., "S4" :1., "V4": 1., "P4":1.,
-        "E5" : 1.2, "S5" : 0.5, "V5" : 1.36, "P5" :1.6,
-        "E6" : 1.5, "S6" : 0.7, "V6" : 0.6, "P6" : 0.5,
-    }   
+    # beta_TH = {
+    #     "H1" : 2.2,
+    #     "E23" : 1.9, "P23" : 0.82, "S23" : 0.98, "V23" : 1.42,
+    #     "E4" :1., "S4" :1., "V4": 1., "P4":1.,
+    #     "E5" : 1.2, "S5" : 0.5, "V5" : 1.36, "P5" :1.6,
+    #     "E6" : 1.5, "S6" : 0.7, "V6" : 0.6, "P6" : 0.5,
+    # }   
     
     # beta_norm = {
     #     "H1" : 3.9,
@@ -1521,6 +1521,7 @@ def compute_Model_params(out_label='', mode='default'):
     # else:
     #     target_pop_list = pop_list_norm
     
+    print("beta_norm=",beta_norm)
     
     for target_area, target_pop, source_area, source_pop in product(area_list, population_list,area_list, population_list):
         if source_area == 'TH':

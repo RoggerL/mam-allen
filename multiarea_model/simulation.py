@@ -339,7 +339,7 @@ class Simulation:
         
         # Loop through simulation time
         while self.model.t < self.T:
-            # print("t=",self.model.t)
+            print("t=",self.model.t)
             # Step time
             self.model.step_time()
             # If recording buffer is full
@@ -561,6 +561,33 @@ class Area:
                 self.simulation.model.add_current_source(pop_name + "_poisson", "PoissonExp", pop_name,
                                                          poisson_params, poisson_init)
 
+            #IF inject current is required
+            
+            print("pop=",pop)
+            if self.network.params['input_params']['inject_current'] and pop == 'E4':
+                trigger_pulse_model = genn_model.create_custom_current_source_class(
+                    "trigger_pulse",
+                    param_names=["input_time","output_time","magnitude"],  # 参数：噪声强度
+                    injection_code=
+                    """
+                    if(t < $(input_time)) {
+                        $(injectCurrent, 0.0);
+                    } else if(t < $(output_time)){
+                        $(injectCurrent, $(magnitude));
+                    } else{
+                        $(injectCurrent, 0.);
+                    }
+                    """
+                )
+                            
+                self.simulation.model.add_current_source(pop_name + "_pulse",
+                    trigger_pulse_model, pop_name,
+                    {   "input_time":500.,
+                        "output_time":1000.,
+                        "magnitude": 0.0},  # 参数空间
+                    {}  # 状态变量空间（即使没有状态变量也需要提供空字典）
+                )
+            
             # Add population to dictionary
             self.genn_pops[pop] = genn_pop
             self.spike_times[pop] = []

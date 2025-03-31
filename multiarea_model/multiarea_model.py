@@ -400,9 +400,13 @@ class MultiAreaModel:
                                 
                 i_inner = 0.
                 for source_pop in self.structure[area]:
-                    i_inner = i_inner + self.K_inner[area][target_pop][source_pop]*self.W_inner[area][target_pop][source_pop]*0.5*rates[source_pop]*1e-3
-                    self.current_intra[area][target_pop][source_pop] = self.K_inner[area][target_pop][source_pop]*self.W_inner[area][target_pop][source_pop]*0.5*rates[source_pop]*1e-3
-
+                    if source_pop in rates:
+                        i_inner = i_inner + self.K_inner[area][target_pop][source_pop]*self.W_inner[area][target_pop][source_pop]*0.5*rates[source_pop]*1e-3
+                        self.current_intra[area][target_pop][source_pop] = self.K_inner[area][target_pop][source_pop]*self.W_inner[area][target_pop][source_pop]*0.5*rates[source_pop]*1e-3
+                    else:
+                        i_inner = i_inner + self.K_inner[area][target_pop][source_pop]*self.W_inner[area][target_pop][source_pop]*0.5*rates[source_pop+"_"+area]*1e-3
+                        self.current_intra[area][target_pop][source_pop] = self.K_inner[area][target_pop][source_pop]*self.W_inner[area][target_pop][source_pop]*0.5*rates[source_pop+"_"+area]*1e-3
+                              
                 self.current_intra[area][target_pop]["total"] = i_inner
 
         #刚刚完成脑区间电流计算

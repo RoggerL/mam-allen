@@ -7,9 +7,11 @@ import pandas as pd
 from copy import deepcopy
 from datetime import datetime
 import matplotlib.pyplot as plt
+import multiprocessing
 from multiprocessing import Pool, Manager
 from config import base_path,data_path
 from multiarea_model import MultiAreaModel
+from scipy.signal import correlate
 import dataset
 import re
 
@@ -287,6 +289,46 @@ def plt_matrix(matrix,area,path,type="currents",label_max=True,show_filename=Fal
     plt.savefig(filename, bbox_inches='tight', dpi=300)
     plt.close()
 
+def compute_lag(X, Y, dt, plt_show=False, min_lag=None, max_lag=None):
+    # 计算互相关
+    correlation = correlate(X, Y, mode='full')
+    lags = np.arange(-len(X) + 1, len(X)) * dt  # lag 轴（转换为时间）
+
+    # 如果指定了 min_lag 和 max_lag，则裁剪 lags 和 correlation
+    if min_lag is not None and max_lag is not None:
+        valid_indices = (lags >= min_lag) & (lags <= max_lag)
+        lags = lags[valid_indices]
+        correlation = correlation[valid_indices]
+
+    # 找到最大互相关值对应的 lag
+    max_corr_index = np.argmax(correlation)
+    time_lag = lags[max_corr_index]
+    max_corr_value = correlation[max_corr_index]
+
+    # 计算最高匹配的皮尔逊相关值
+    shifted_Y = np.roll(Y, int(time_lag / dt))  # 根据 time_lag 对 Y 进行位移
+    pearson_corr = np.corrcoef(X, shifted_Y)[0, 1]  # 计算皮尔逊相关系数
+
+
+
+    if plt_show:
+        # 输出结果
+        print(f"Estimated Time-Lag: {time_lag:.4f} seconds")
+        print(f"Maximum Cross-Correlation Value: {max_corr_value:.4f}")
+        print(f"Pearson Correlation at Maximum Lag: {pearson_corr:.4f}")        
+        
+        # 绘制互相关结果
+        plt.figure(figsize=(10, 4))
+        plt.plot(lags, correlation, label="Cross-Correlation")
+        plt.axvline(x=time_lag, color='r', linestyle='--', label=f"Time-Lag: {time_lag:.4f}s")
+        plt.title("Cross-Correlation between X and Y")
+        plt.xlabel("Lag (s)")
+        plt.ylabel("Correlation")
+        plt.legend()
+        plt.grid()
+        plt.show()
+    
+    return time_lag, pearson_corr
 #Set input current for each pop in each area
 
 # input_current = {
@@ -590,7 +632,11 @@ def simulation_block(block_id, device_id,param_name = 'input_value'):
     #Set alpha value
     alpha_dict_norm= {'H1': 0.1, 'E23': 1., 'S23': 0.6, 'V23': 1., 'P23': 1.9, 'E4': 0.8, 'S4': 0.8, 'V4': 1., 'P4': 1., 'E5': 1.6, 'S5': 0.5, 'V5': 3., 'P5': 1.1, 'E6': 0.7, 'S6': 1., 'V6': 2., 'P6': 1.}
     alpha_dict_TH= {'H1': 0.1, 'E23': 0.5, 'S23': 0.6, 'V23': 0.5, 'P23': 1., 'E4': 1., 'S4': 0.8, 'V4': 1., 'P4': 1., 'E5': 1.6, 'S5': 0.5 , 'V5': 1., 'P5': 1., 'E6': 0.5, 'S6': 1., 'V6': 1., 'P6': 1.}
-
+    beta_dict_norm = {"H1" : 3.9+0.01,
+                 "E23" : 0.71+0.01, "P23" : 0.48+0.01, "S23" : 1.+0.01, "V23" :0.9+0.01,
+                 "E4" : 1.66+0.01, "S4" : 0.24+0.01, "V4" : 0.46+0.01, "P4" : 0.8+0.01,
+                 "E5" : 0.95+0.01, "S5" : 0.48+0.01, "V5" : 1.2+0.01, "P5" :1.09+0.01,
+                 "E6" : 1.12+0.01, "S6" : 0.63+0.01, "V6" : 0.5+0.01, "P6" : 0.42+0.01}
     if 'connection' in param_name:
         pattern = r'^(.+?)connection$'
         match = re.match(pattern, param_name)
@@ -614,7 +660,8 @@ def simulation_block(block_id, device_id,param_name = 'input_value'):
                    'g_S' : -4.,
                    'g_P' : -4.,
                    'alpha_norm': alpha_dict_norm,
-                   'alpha_TH': alpha_dict_TH,                
+                   'alpha_TH': alpha_dict_TH,         
+                   'beta_norm': beta_dict_norm,        
                    
                 #    'K_stable': os.path.join(base_path, "K_stable.npy"),
                     # 'K_stable':None,           
@@ -682,7 +729,7 @@ def simulation_block(block_id, device_id,param_name = 'input_value'):
                       'delay_params': delay_params}
 
     sim_params = {'t_sim': 1000.,
-                  'master_seed': 50,
+                  'master_seed': 15,
                   'num_processes': 1,
                   'local_num_threads': 1,
                   'recording_dict': {'record_vm': False},
@@ -734,25 +781,35 @@ def simulation_block(block_id, device_id,param_name = 'input_value'):
         M.analysis.create_pop_rate_dists()
         M.analysis.create_rate_time_series()
         M.analysis.create_synaptic_input()
-
+        
         for area in M.analysis.areas_loaded:
             if area != 'TH':
                 pop_list = pop_list_norm
             else :
                 pop_list = pop_list_TH
+            
+            lag_and_values = [[compute_lag(M.analysis.rate_time_series_pops[area][pop_1][500:],M.analysis.rate_time_series_pops[area][pop_2][500:],dt=0.2, min_lag=-10., max_lag=10.) for pop_1 in ['E23','E4','E5','E6']] for pop_2 in ['E23','E4','E5','E6']]
+            lags = [[lag_and_value[0] for lag_and_value in line] for line in lag_and_values]
+            values = [[lag_and_value[1] for lag_and_value in line] for line in lag_and_values]
+            print("lags=",lags)
+            print("values=",values)
+                        
             if True:
                 M.analysis.multi_rate_display(area,pops = pop_list,output = "png")
                 if pygenn.__version__ == "5.0.0":
                     M.analysis.multi_voltage_display(area,pops = pop_list,output = "png")
                     M.analysis.multi_current_display(area,pops = pop_list,output = "png")
-                    M.analysis.avg_current_display(area,pops = pop_list,t_min=1000,output = "png")
-                M.analysis.multi_input_display(area=area,pops = pop_list,output = "png")
-                M.analysis.multi_power_display(area=area,pops = pop_list,output = "png",resolution=0.2)
-                current_dict = M.analysis.theory_current_display(area,pops = pop_list,t_min=1000,output = "png")
+                    M.analysis.avg_current_display(area,pops = pop_list,t_min=500,output = "png")
+                M.analysis.multi_input_display(area=area,pops = pop_list,t_min=500,output = "png")
+                M.analysis.multi_power_display(area=area,pops = pop_list,t_min=500,output = "png",resolution=0.2)
+                current_dict = M.analysis.theory_current_display(area,pops = pop_list,t_min=500,output = "png")
                     # M.analysis.synaptic_current_display(area,pops = pop_list_norm,t_min=1000,output = "png")
                 # print("current_dict",current_dict)
             # else:
                 # M.analysis.multi_rate_display(area,pops = pop_list_TH,output = "png")
+        
+        
+        a = dict(label=M.simulation.label,param_value=block_id)
 
         for area in M.analysis.areas_loaded:
             # if area == 'V1':
@@ -760,16 +817,18 @@ def simulation_block(block_id, device_id,param_name = 'input_value'):
                 pop_list = pop_list_norm
             else:
                 pop_list = pop_list_TH
+            
             for pop in pop_list:
-                M.analysis.single_rate_display(area=area,pop=pop,output = "png")
-                # frac_neurons : float, [0,1]
-                frac_neurons = 0.01
-                M.analysis.single_dot_display(area=area,pop=pop,frac_neurons=frac_neurons,output = "png")
-                if pygenn.__version__ == "5.0.0":
-                    M.analysis.single_voltage_display(area=area,pop=pop,frac_neurons=frac_neurons,output = "png")
-                    M.analysis.single_current_display(area=area,pop=pop,frac_neurons=frac_neurons,output = "png")
-                M.analysis.single_input_display(area=area,pop=pop,frac_neurons=frac_neurons,output = "png")
-                M.analysis.single_power_display(area=area,pop=pop,output = "png",resolution=0.2)
+                if True:
+                    M.analysis.single_rate_display(area=area,pop=pop,output = "png")
+                    # frac_neurons : float, [0,1]
+                    frac_neurons = 0.01
+                    M.analysis.single_dot_display(area=area,pop=pop,frac_neurons=frac_neurons,output = "png")
+                    if pygenn.__version__ == "5.0.0":
+                        M.analysis.single_voltage_display(area=area,pop=pop,frac_neurons=frac_neurons,output = "png")
+                        M.analysis.single_current_display(area=area,pop=pop,frac_neurons=frac_neurons,output = "png")
+                    M.analysis.single_input_display(area=area,pop=pop,t_min=500,frac_neurons=frac_neurons,output = "png")
+                    M.analysis.single_power_display(area=area,pop=pop,t_min=500,output = "png",resolution=0.2)
         
             K_in = extract_area_dict(M.K, M.structure, area,area)
             W_in = extract_area_dict(M.W, M.structure, area,area)
@@ -777,16 +836,15 @@ def simulation_block(block_id, device_id,param_name = 'input_value'):
                 rates = {pop+"_"+area :M.analysis.pop_rates[area][pop][0] for pop in pop_list}
                 print("rates=",rates)
                 # a = dict(label=M.label,input_value=block_id)
-                a = dict(label=M.simulation.label,param_value=block_id)
                 a.update(rates)
-                
-                with dataset.connect(f'sqlite:///{data_path}/dataset.db') as db:
-                    db[param_name].insert(a)
-                    print("insert {} {}".format(param_name,block_id))
                     
-                M.create_current(rates=rates)
-                M.plt_matrix_weight('V1')
-             
+                # M.create_current(rates=rates)
+                # M.plt_matrix_weight(area)
+
+        with dataset.connect(f'sqlite:///{data_path}/dataset.db') as db:
+            db[param_name].insert(a)
+            print("insert {} {}".format(param_name,block_id))
+
     # # M.analysis.save()
     # # M.analysis.show_rates(output = "png")
 
@@ -940,21 +998,37 @@ def multi_program(device_list, num_tasks,param_name = 'input_value'):
                 result = pool.apply_async(run_simulation, args=(task_args,))
                 results.append(result)
 
-            for result in results:
-                result.get()
+            # for result in results:
+            #     result.get()
+            
+            timeout = 8*3600
+            # 处理所有任务的结果
+            for result, task_args in results:
+                try:
+                    result.get(timeout=timeout)  # 等待任务完成，最多等待 timeout 秒
+                except multiprocessing.TimeoutError:
+                    task_id, device, _, _ = task_args
+                    print(f"Task {task_id} exceeded the time limit and is being terminated.")
+                    # 手动释放设备
+                    available_devices.put(device)
+                except Exception as e:
+                    task_id, device, _, _ = task_args
+                    print(f"Task {task_id} raised an exception: {e}")
+                    # 手动释放设备
+                    available_devices.put(device)
 
         end_time = time.time()
         print(f"\nAll tasks completed in {end_time - start_time:.2f} seconds.")
 
 if __name__ == "__main__":
     # 测试配置
-    device_list = [5,6,7,8,9]  
-    num_tasks = 10
+    device_list = [4]  
+    num_tasks = 1
 
     # V1各群神经元放电率随每群神经元额外电流输入变化
-    # for pop in pop_list_norm:
-    #     multi_program(device_list, num_tasks,param_name=pop)
-    
+    # for param_name in pop_list_norm:
+    #     multi_program(device_list, num_tasks,param_name=param_name)
+        
     # V1各群神经元放电率随每群神经元投射的连接强度的变化
     # for param_name in pop_list_norm:
     #     multi_program(device_list, num_tasks,param_name="{}connection".format(param_name))
@@ -963,8 +1037,12 @@ if __name__ == "__main__":
     # for param_name in pop_list_norm:
     #     multi_program(device_list, num_tasks,param_name="{}conprecent".format(param_name))
 
-    for param_name in pop_list_norm:
-        multi_program(device_list, num_tasks,param_name="{}conmultiple".format(param_name))
-        
+    # for param_name in pop_list_norm:
+    #     multi_program(device_list, num_tasks,param_name="{}conmultiple".format(param_name))
+
+    # for param_name in pop_list_norm:
+    #     multi_program(device_list, num_tasks,param_name="{}multiarea".format(param_name))
     # multi_program(device_list, num_tasks,param_name='delay_e')
     # multi_program(device_list, num_tasks,param_name='delay_i')
+    
+    simulation_block(0, 5, param_name="test")
